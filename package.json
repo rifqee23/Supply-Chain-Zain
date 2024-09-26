@@ -1,0 +1,21 @@
+{
+  "name": "supply-chain-zain",
+  "version": "1.0.0",
+  "description": "**Supply-Chain-Zain** is a full-stack web application designed to optimize supply chain management processes. It facilitates seamless tracking and management of procurement, inventory, and logistics operations, providing businesses with real-time insights and automation capabilities.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.7.2",
+    "prisma": "^5.20.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0"
+  }
+}
