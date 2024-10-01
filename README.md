@@ -6,7 +6,6 @@
 
 - [Features](#features)
 - [Tech Stack](#tech-stack)
-- [Installation](#installation)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
 - [Contributing](#contributing)
@@ -32,3 +31,27 @@
 - **Express.js**: Fast, unopinionated, minimalist web framework for Node.js.
 - **Prisma ORM**: Database toolkit and ORM to interact with PostgreSQL.
 - **PostgreSQL**: Open-source relational database for storing data.
+
+## Usage
+
+Install my-project with npm
+
+```bash
+  cd Supply-Chain-Z4IN
+```
+```bash
+  npm install
+```
+How to run
+```bash
+  nodemon
+```
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
+
+
+## Authors
+
+- [@rifqee23](https://www.github.com/rifqee23)
