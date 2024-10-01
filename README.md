@@ -32,3 +32,7 @@
 - **Express.js**: Fast, unopinionated, minimalist web framework for Node.js.
 - **Prisma ORM**: Database toolkit and ORM to interact with PostgreSQL.
 - **PostgreSQL**: Open-source relational database for storing data.
+
+## Authors
+
+- [@octokatherine](https://www.github.com/octokatherine)
