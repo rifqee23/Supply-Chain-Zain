@@ -11,22 +11,17 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
-// Controllers
+// Import controllers
 const authController = require("./auth/auth.controller");
 const productController = require("./product/product.controller");
-const UserController = require("./user/user.controller");
+const userController = require("./user/user.controller");
+const orderController = require('./order/order.controller');
 
 // Routes
 app.use("/api/auth", authController);
 app.use("/api/products", productController);
-
-// New User routes
-const userController = new UserController();
-app.post("/api/users", userController.createUser.bind(userController));
-app.get("/api/users", userController.getUsers.bind(userController));
-app.get("/api/users/:id", userController.getUserById.bind(userController));
-app.put("/api/users/:id", userController.updateUser.bind(userController));
-app.delete("/api/users/:id", userController.deleteUser.bind(userController));
+app.use("/api/users", userController);
+app.use("/api/orders", orderController);
 
 // Start the server
 app.listen(port, () => {

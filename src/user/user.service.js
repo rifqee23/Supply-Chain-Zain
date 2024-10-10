@@ -7,9 +7,7 @@ class UserService {
   }
 
   async createUser(userData) {
-    // Hash password before saving
     const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
     const newUser = {
       username: userData.username,
       email: userData.email,
@@ -29,7 +27,6 @@ class UserService {
   }
 
   async updateUser(id, userData) {
-    // If password is being updated, hash it
     if (userData.password) {
       userData.password = await bcrypt.hash(userData.password, 10);
     }
