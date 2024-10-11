@@ -57,20 +57,27 @@ class OrderRepository {
 
   async update(id, orderData) {
     const { status, products } = orderData;
+    const updateData = {};
+    
+    if (status) {
+      updateData.status = status;
+    }
+    
+    if (products && products.length > 0) {
+      updateData.OrderItems = {
+        deleteMany: {},
+        create: products.map(product => ({
+          product: {
+            connect: { id: product.product_id }
+          },
+          quantity: product.quantity
+        }))
+      };
+    }
+    
     return await prisma.orders.update({
       where: { id: parseInt(id) },
-      data: {
-        status,
-        OrderItems: {
-          deleteMany: {},
-          create: products.map(product => ({
-            product: {
-              connect: { id: product.product_id }
-            },
-            quantity: product.quantity
-          }))
-        }
-      },
+      data: updateData,
       include: {
         OrderItems: {
           include: {
