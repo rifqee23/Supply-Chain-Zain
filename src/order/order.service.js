@@ -20,9 +20,34 @@ class OrderService {
   }
 
   async updateOrder(id, orderData) {
-    await this.validateOrderData(orderData);
+    const existingOrder = await this.orderRepository.findById(id);
+    if (!existingOrder) {
+      throw new Error('Order not found');
+    }
+    
+    await this.validateProductsData(orderData.products);
+    
     return this.orderRepository.update(id, orderData);
   }
+
+  async validateProductsData(products) {
+    if (products && Array.isArray(products)) {
+      for (let product of products) {
+        if (!product.product_id || !product.quantity || product.quantity <= 0) {
+          throw new Error('Invalid product data');
+        }
+        
+        const existingProduct = await prisma.products.findUnique({
+          where: { id: product.product_id }
+        });
+        
+        if (!existingProduct) {
+          throw new Error(`Product with id ${product.product_id} does not exist`);
+        }
+      }
+    }
+  }
+
 
   async deleteOrder(id) {
     return this.orderRepository.delete(id);

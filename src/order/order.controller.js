@@ -42,10 +42,19 @@ router.get("/:id", async (req, res) => {
 // Update Order by ID
 router.put("/:id", async (req, res) => {
     try {
+        const orderId = parseInt(req.params.id);
+        if (isNaN(orderId)) {
+            return res.status(400).json({ message: 'Invalid order ID' });
+        }
+
         const { status, products } = req.body;
-        const order = await orderService.updateOrder(req.params.id, { status, products });
-        if (order) {
-            res.status(200).json(order);
+        if (!status && (!products || products.length === 0)) {
+            return res.status(400).json({ message: 'No update data provided' });
+        }
+
+        const updatedOrder = await orderService.updateOrder(orderId, { status, products });
+        if (updatedOrder) {
+            res.status(200).json(updatedOrder);
         } else {
             res.status(404).json({ message: 'Order not found' });
         }
