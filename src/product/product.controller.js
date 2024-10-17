@@ -1,10 +1,12 @@
 const express = require("express");
 const { createProduct, getAllProduct, getProductById, editProductById, deleteProductById } = require("./product.service");
+const authorizeJWT = require('../middleware/authorizeJWT');
+const adminAuthorization = require('../middleware/adminAuthorization')
 
 const router = express.Router();
 
 // Create Product
-router.post("/", async (req, res) => {
+router.post("/", adminAuthorization, async (req, res) => {
     try {
         const newProductData = req.body;
         const newProduct = await createProduct(newProductData);
@@ -15,7 +17,7 @@ router.post("/", async (req, res) => {
 });
 
 // Get all Products
-router.get("/", async (req, res) => {
+router.get("/", authorizeJWT, async (req, res) => {
     try {
         const products = await getAllProduct();
         res.status(200).send(products);
@@ -25,7 +27,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get Product by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", authorizeJWT, async (req, res) => {
     try {
         const productId = parseInt(req.params.id);
         const product = await getProductById(productId);
@@ -36,7 +38,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Edit Product by ID
-router.put("/:id", async (req, res) => {
+router.put("/:id", adminAuthorization, async (req, res) => {
     try {
         const productId = req.params.id;
         const productData = req.body;
@@ -48,7 +50,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete Product by ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminAuthorization, async (req, res) => {
     try {
         const productId = req.params.id;
         await deleteProductById(productId);

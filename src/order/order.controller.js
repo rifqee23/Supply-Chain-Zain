@@ -4,8 +4,11 @@ const OrderService = require('./order.service');
 const router = express.Router();
 const orderService = new OrderService();
 
+const authorizeJWT = require('../middleware/authorizeJWT');
+const adminAuthorization = require('../middleware/adminAuthorization');
+
 // Create Order
-router.post("/", async (req, res) => {
+router.post("/", authorizeJWT, async (req, res) => {
     try {
         const { user_id, status, products } = req.body;
         const newOrder = await orderService.createOrder({ user_id, status, products });
@@ -16,7 +19,7 @@ router.post("/", async (req, res) => {
 });
 
 // Get all Orders
-router.get("/", async (req, res) => {
+router.get("/", adminAuthorization, async (req, res) => {
     try {
         const orders = await orderService.getOrders();
         res.status(200).json(orders);
@@ -26,7 +29,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get Order by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", authorizeJWT, async (req, res) => {
     try {
         const order = await orderService.getOrderById(req.params.id);
         if (order) {
@@ -40,7 +43,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update Order by ID
-router.put("/:id", async (req, res) => {
+router.put("/:id", adminAuthorization, async (req, res) => {
     try {
         const orderId = parseInt(req.params.id);
         if (isNaN(orderId)) {
@@ -64,7 +67,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete Order by ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminAuthorization, async (req, res) => {
     try {
         const result = await orderService.deleteOrder(req.params.id);
         if (result) {

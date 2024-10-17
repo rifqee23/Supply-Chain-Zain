@@ -1,7 +1,8 @@
 const express = require('express');
 const app = express();
 const port = 3000;
-const dotenv = require('dotenv').config()
+const dotenv = require('dotenv').config();
+const adminAuthorization = require('./middleware/adminAuthorization');
 
 
 // Middleware
@@ -22,7 +23,7 @@ const orderController = require('./order/order.controller');
 // Routes
 app.use("/api/auth", authController);
 app.use("/api/products", productController);
-app.use("/api/users", userController);
+app.use("/api/users", adminAuthorization, userController);
 app.use("/api/orders", orderController);
 
 // Start the server
