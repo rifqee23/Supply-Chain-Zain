@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,64 +8,81 @@ datasource db {
 }
 
 model Users {
-  id         Int      @id @default(autoincrement())
-  username   String   @unique
-  email      String   @unique
+  userID     Int        @id @default(autoincrement())
+  username   String     @unique
+  email      String     @unique
   password   String
-  role       UserRole @default(STACKHOLDER)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  Orders     Orders[]
+  role       UserRole   @default(SUPPLIER)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  Orders     Orders[]   
+  Products   Products[] 
 }
 
 model Products {
-  id          Int           @id @default(autoincrement())
+  productID   Int              @id @default(autoincrement())
   name        String
   description String
   price       Float
   stock       Int
-  create_at   DateTime      @default(now())
-  updated_at  DateTime      @updatedAt
-  OrderItems  OrderItems[]
+  category    ShoePartCategory 
+  unit        UnitType         
+  material    String           
+  userID      Int              
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  supplier    Users            @relation(fields: [userID], references: [userID])
+  Orders      Orders[]         
+
+  @@index([userID])
 }
 
 model Orders {
-  id         Int         @id @default(autoincrement())
-  user_id    Int
-  status     StatusRole  @default(PENDING)
-  created_at DateTime    @default(now())
-  updated_at DateTime    @updatedAt
-  user       Users       @relation(fields: [user_id], references: [id])
-  OrderItems OrderItems[]
-  Labels     Labels?
-}
-
-model OrderItems {
-  id         Int      @id @default(autoincrement())
-  order_id   Int
-  product_id Int
+  orderID    Int        @id @default(autoincrement())
+  userID     Int        
+  productID  Int        
   quantity   Int
-  order      Orders   @relation(fields: [order_id], references: [id])
-  product    Products @relation(fields: [product_id], references: [id])
+  status     StatusRole @default(PENDING)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  user       Users      @relation(fields: [userID], references: [userID])
+  product    Products   @relation(fields: [productID], references: [productID])
+  qr_code    String?    
 
-  @@index([order_id])
-  @@index([product_id])
-}
-
-model Labels {
-  id         Int      @id @default(autoincrement())
-  order_id   Int      @unique
-  qr_code    String
-  order      Orders   @relation(fields: [order_id], references: [id])
+  @@index([userID])
+  @@index([productID])
 }
 
 enum UserRole {
-  STACKHOLDER
-  SUPPLYER
+  STAKEHOLDER
+  SUPPLIER
 }
 
 enum StatusRole {
   PENDING
+  ON_PROGRESS
   SUCCESS
   REJECT
+}
+
+enum ShoePartCategory {
+  UPPER       // Bagian atas sepatu
+  SOLE        // Sol sepatu
+  INSOLE      // Bagian dalam sepatu
+  SHOELACES   // Tali sepatu
+  HEEL        // Hak sepatu
+  TONGUE      // Lidah sepatu
+  EYELETS     // Lubang tali
+  TOE_CAP     // Ujung sepatu
+  QUARTER     // Bagian samping
+  LINING      // Lapisan dalam
+  PADDING     // Bantalan
+}
+
+enum UnitType {
+  METER       // Untuk material yang dijual per meter (kulit, tekstil)
+  KG          // Untuk material yang dijual per berat (lem, bahan kimia)
+  PCS         // Untuk komponen yang dijual per piece (eyelet, sol)
+  ROLL        // Untuk material dalam bentuk roll (benang)
+  PACK        // Untuk item yang dijual per pack
 }

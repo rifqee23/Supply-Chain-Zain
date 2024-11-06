@@ -3,7 +3,12 @@ const bcrypt = require('bcrypt');
 const userRepository = require('./auth.repository');
 
 function generateToken(user) {
-    return jwt.sign({ id: user.id, username: user.username, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+    return jwt.sign({ 
+        userID: user.userID,  
+        username: user.username, 
+        email: user.email, 
+        role: user.role
+    }, process.env.JWT_SECRET, {
         expiresIn: '1h'
     });
 }
@@ -25,7 +30,7 @@ async function register(username, email, password, role) {
 }
 
 async function login(username, password) {
-    const user = await userRepository.findUserByUsername(username)
+    const user = await userRepository.findUserByUsername(username);
 
     if (!user) {
         throw new Error('Invalid username or password');
@@ -38,8 +43,17 @@ async function login(username, password) {
     }
 
     const token = generateToken(user);
-    return {user, token};
+
+    return { 
+        user: {
+            username: user.username,
+            role: user.role,
+            userID: user.userID  // pastikan `userID` dikembalikan
+        },
+        token
+    };
 }
+
 
 module.exports = {
     register,

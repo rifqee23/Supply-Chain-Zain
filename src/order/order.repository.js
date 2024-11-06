@@ -1,101 +1,208 @@
 const prisma = require('../db');
 
 class OrderRepository {
-  async create(orderData) {
-    const { user_id, status, products } = orderData;
-    return await prisma.orders.create({
-      data: {
-        user_id,
-        status,
-        OrderItems: {
-          create: products.map(product => ({
-            product: {
-              connect: { id: product.product_id }
+    // Create new order
+    async create(orderData) {
+        const { userID, productID, quantity } = orderData;
+        return await prisma.Orders.create({
+            data: {
+                userID,
+                productID,
+                quantity,
+                status: 'PENDING'
             },
-            quantity: product.quantity
-          }))
-        }
-      },
-      include: {
-        OrderItems: {
-          include: {
-            product: true
-          }
-        }
-      }
-    });
-  }
-
-  async findAll() {
-    return await prisma.orders.findMany({
-      include: {
-        user: true,
-        OrderItems: {
-          include: {
-            product: true
-          }
-        },
-        Labels: true,
-      },
-    });
-  }
-
-  async findById(id) {
-    return await prisma.orders.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        user: true,
-        OrderItems: {
-          include: {
-            product: true
-          }
-        },
-        Labels: true,
-      },
-    });
-  }
-
-  async update(id, orderData) {
-    const { status, products } = orderData;
-    const updateData = {};
-    
-    if (status) {
-      updateData.status = status;
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
-    
-    if (products && products.length > 0) {
-      updateData.OrderItems = {
-        deleteMany: {},
-        create: products.map(product => ({
-          product: {
-            connect: { id: product.product_id }
+
+    // Get all orders for a supplier's products
+    async findSupplierOrders(userID) {
+        return await prisma.Orders.findMany({
+            where: {
+                product: {
+                    userID: userID // supplier is referenced by userID in Products table
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: true
+            },
+            orderBy: [
+                {
+                    status: 'asc' // PENDING first
+                },
+                {
+                    created_at: 'desc' // Newest first within same status
+                }
+            ]
+        });
+    }
+
+    // Get all orders for a user
+    async findUserOrders(userID) {
+        return await prisma.Orders.findMany({
+          where: {
+            userID: userID
           },
-          quantity: product.quantity
-        }))
-      };
+          include: {
+            product: {
+              include: {
+                supplier: {
+                  select: {
+                    username: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: {
+            created_at: 'desc'
+          }
+        });
+      }
+
+      async findSupplierOrderHistory(supplierUserID) {
+        return await prisma.Orders.findMany({
+            where: {
+                product: {
+                    userID: supplierUserID
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
     }
     
-    return await prisma.orders.update({
-      where: { id: parseInt(id) },
-      data: updateData,
-      include: {
-        OrderItems: {
-          include: {
-            product: true
-          }
-        }
-      }
-    });
-  }
+    // Find order by ID
+    async findById(orderID) {
+        return await prisma.Orders.findUnique({
+            where: { 
+                orderID: orderID 
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // Update order status
+    async updateStatus(orderID, status) {
+        return await prisma.Orders.update({
+            where: { 
+                orderID: orderID 
+            },
+            data: { 
+                status: status,
+                updated_at: new Date()
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-  async delete(id) {
-    await prisma.orderItems.deleteMany({
-      where: { order_id: parseInt(id) }
-    });
-    return await prisma.orders.delete({
-      where: { id: parseInt(id) },
-    });
-  }
+    // Delete order
+    async delete(orderID) {
+        return await prisma.Orders.delete({
+            where: { 
+                orderID: orderID 
+            }
+        });
+    }
+    async checkSupplierProduct(orderID, userID) {
+        const order = await prisma.Orders.findFirst({
+            where: {
+                orderID: orderID,
+                product: {
+                    userID: userID 
+                }
+            }
+        });
+        return order !== null;
+    }
+
+    async checkSupplierProduct(orderID, userID) {
+        const order = await prisma.Orders.findFirst({
+            where: {
+                orderID: orderID,
+                product: {
+                    userID: userID
+                }
+            }
+        });
+        return order !== null;
+    }
 }
 
 module.exports = OrderRepository;
