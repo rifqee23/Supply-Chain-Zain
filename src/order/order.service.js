@@ -1,90 +1,153 @@
 const OrderRepository = require('./order.repository');
 const prisma = require('../db');
+const { updateProductStock } = require('../product/product.repository');
 
 class OrderService {
-  constructor() {
-    this.orderRepository = new OrderRepository();
-  }
-
-  async createOrder(orderData) {
-    await this.validateOrderData(orderData);
-    return this.orderRepository.create(orderData);
-  }
-
-  async getOrders() {
-    return this.orderRepository.findAll();
-  }
-
-  async getOrderById(id) {
-    return this.orderRepository.findById(id);
-  }
-
-  async updateOrder(id, orderData) {
-    const existingOrder = await this.orderRepository.findById(id);
-    if (!existingOrder) {
-      throw new Error('Order not found');
+    constructor() {
+        this.orderRepository = new OrderRepository();
     }
-    
-    await this.validateProductsData(orderData.products);
-    
-    return this.orderRepository.update(id, orderData);
-  }
 
-  async validateProductsData(products) {
-    if (products && Array.isArray(products)) {
-      for (let product of products) {
-        if (!product.product_id || !product.quantity || product.quantity <= 0) {
-          throw new Error('Invalid product data');
+    // Create new order
+    async createOrder(orderData) {
+        await this.validateOrderData(orderData);
+        return this.orderRepository.create(orderData);
+    }
+
+    async getUserOrders(userID) {
+        return this.orderRepository.findUserOrders(userID);
+      }
+
+      async getSupplierOrders(userID) {
+        return this.orderRepository.findSupplierOrders(userID);
+    }
+
+    async getOrderById(orderID, userID) {
+        // Periksa apakah order ada dan dimiliki oleh user tersebut
+        const order = await this.orderRepository.findById(orderID);
+        if (!order || order.userID !== userID) {
+            throw new Error('Order not found or Unauthorized access');
         }
+        return order;
+    }
+
+    async getSupplierOrderDetails(orderID, supplierUserID) {
+        // Check if order exists and belongs to supplier's products
+        const isSupplierProduct = await this.orderRepository.checkSupplierProduct(orderID, supplierUserID);
+
+        if (!isSupplierProduct) {
+            throw new Error('Order not found or unauthorized access');
+        }
+
+        const order = await this.orderRepository.findById(orderID);
         
-        const existingProduct = await prisma.products.findUnique({
-          where: { id: product.product_id }
+        // Return only necessary order details
+        return {
+            orderID: order.orderID,
+            status: order.status,
+            quantity: order.quantity,
+            created_at: order.created_at,
+            updated_at: order.updated_at,
+            product: {
+                name: order.product.name,
+                description: order.product.description,
+                price: order.product.price
+            },
+            customer: {
+                username: order.user.username,
+                email: order.user.email
+            }
+        };
+    }
+
+    async getSupplierOrderHistory(supplierUserID) {
+        return this.orderRepository.findSupplierOrderHistory(supplierUserID);
+    }
+
+    // Update order status
+    async updateOrderStatus(orderID, status, supplierUserID) {
+        // Check if order exists and belongs to supplier's products
+        const isSupplierProduct = await this.orderRepository.checkSupplierProduct(orderID, supplierUserID);
+
+        if (!isSupplierProduct) {
+            throw new Error('Order not found or unauthorized access');
+        }
+
+        // Validate status
+        if (!Object.values(StatusRole).includes(status)) {
+            throw new Error('Invalid status');
+        }
+
+        // Get current order
+        const currentOrder = await this.orderRepository.findById(orderID);
+        if (!currentOrder) {
+            throw new Error('Order not found');
+        }
+
+        // Handle stock management based on status change
+        if (status === StatusRole.ON_PROGRESS && currentOrder.status === StatusRole.PENDING) {
+            // Kurangi stok jika status berubah dari PENDING ke ON_PROGRESS
+            await updateProductStock(currentOrder.productID, currentOrder.quantity, false);
+        } else if (status === StatusRole.REJECT && currentOrder.status === StatusRole.ON_PROGRESS) {
+            // Jika status berubah menjadi REJECT dari ON_PROGRESS, kembalikan stok
+            await updateProductStock(currentOrder.productID, currentOrder.quantity, true);
+        }
+
+        return this.orderRepository.updateStatus(orderID, status);
+    }
+
+    // Delete order
+    async deleteOrder(orderID, userID) {
+        const order = await this.orderRepository.findById(orderID);
+        
+        if (!order) {
+            throw new Error('Order not found');
+        }
+        // Only order owner can delete
+        if (order.userID !== userID) {
+            throw new Error('Unauthorized access');
+        }
+        if (order.status === 'ON_PROGRESS') {
+            await updateProductStock(order.productID, order.quantity, true);
+        }
+        return this.orderRepository.delete(orderID);
+    }
+
+    // Validate order data
+    async validateOrderData(orderData) {
+        const { userID, productID, quantity } = orderData;
+
+        if (!productID || !quantity) {
+            throw new Error('Product ID and quantity are required');
+        }
+        if (quantity <= 0) {
+            throw new Error('Quantity must be greater than 0');
+        }
+        const product = await prisma.Products.findUnique({
+            where: { productID }
         });
-        
-        if (!existingProduct) {
-          throw new Error(`Product with id ${product.product_id} does not exist`);
+        if (!product) {
+            throw new Error('Product not found');
         }
-      }
+        if (product.stock < quantity) {
+            throw new Error('Insufficient stock');
+        }
+        const user = await prisma.Users.findUnique({
+            where: { userID }
+        });
+        if (!user) {
+            throw new Error('User not found');
+        }
+        if (user.role !== 'STAKEHOLDER') {
+            throw new Error('Only STAKEHOLDER can create orders');
+        }
     }
-  }
-
-
-  async deleteOrder(id) {
-    return this.orderRepository.delete(id);
-  }
-
-  async validateOrderData(orderData) {
-    if (!orderData.user_id) {
-      throw new Error('User ID is required');
-    }
-    if (!orderData.products || !Array.isArray(orderData.products) || orderData.products.length === 0) {
-      throw new Error('At least one product is required');
-    }
-    
-    // Validasi keberadaan produk
-    for (let product of orderData.products) {
-      if (!product.product_id || !product.quantity || product.quantity <= 0) {
-        throw new Error('Invalid product data');
-      }
-      
-      const existingProduct = await prisma.products.findUnique({
-        where: { id: product.product_id }
-      });
-      
-      if (!existingProduct) {
-        throw new Error(`Product with id ${product.product_id} does not exist`);
-      }
-    }
-    
-    // Validasi keberadaan user
-    const existingUser = await prisma.users.findUnique({
-      where: { id: orderData.user_id }
-    });
-    
-    if (!existingUser) {
-      throw new Error(`User with id ${orderData.user_id} does not exist`);
-    }
-  }
 }
+
+const StatusRole = {
+    PENDING: 'PENDING',
+    ON_PROGRESS: 'ON_PROGRESS',
+    SUCCESS: 'SUCCESS',
+    REJECT: 'REJECT'
+  };
 
 module.exports = OrderService;

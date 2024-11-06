@@ -1,62 +1,137 @@
 const express = require("express");
-const { createProduct, getAllProduct, getProductById, editProductById, deleteProductById } = require("./product.service");
+const { createProduct, getAllProduct, getSupplierProducts, getProductById, editProductById, deleteProductById } = require("./product.service");
 const authorizeJWT = require('../middleware/authorizeJWT');
-const adminAuthorization = require('../middleware/adminAuthorization')
+const adminAuthorization = require('../middleware/adminAuthorization');
 
 const router = express.Router();
 
-// Create Product
+// Create Product (SUPPLIER only)
 router.post("/", adminAuthorization, async (req, res) => {
     try {
-        const newProductData = req.body;
-        const newProduct = await createProduct(newProductData);
-        res.status(201).json(newProduct);
+        const userID = req.user.userID; 
+        const productData = {
+            ...req.body,
+            userID 
+        };
+        
+        const newProduct = await createProduct(productData);
+        res.status(201).json({
+            message: "Product created successfully",
+            data: newProduct
+        });
     } catch (error) {
-        res.status(400).send(error.message);
-    }
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
+    }   
 });
 
-// Get all Products
+// Get all Products (Both SUPPLIER and STAKEHOLDER)
 router.get("/", authorizeJWT, async (req, res) => {
     try {
         const products = await getAllProduct();
-        res.status(200).send(products);
+        res.status(200).json({
+            message: "Products retrieved successfully",
+            data: products
+        });
     } catch (error) {
-        res.status(400).send(error.message);
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
+    }
+});
+
+// Get Supplier's Products (SUPPLIER only)
+router.get("/supplier", adminAuthorization, async (req, res) => {
+    try {
+        const userID = req.user.userID; 
+        const products = await getSupplierProducts(userID);
+        res.status(200).json({
+            message: "Supplier products retrieved successfully",
+            data: products
+        });
+    } catch (error) {
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
     }
 });
 
 // Get Product by ID
-router.get("/:id", authorizeJWT, async (req, res) => {
+router.get("/:productID", authorizeJWT, async (req, res) => {
     try {
-        const productId = parseInt(req.params.id);
-        const product = await getProductById(productId);
-        res.status(200).send(product);
+        const productID = parseInt(req.params.productID);
+        const product = await getProductById(productID);
+        
+        if (!product) {
+            return res.status(404).json({
+                message: "Product not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Product retrieved successfully",
+            data: product
+        });
     } catch (error) {
-        res.status(400).send(error.message);
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
     }
 });
 
-// Edit Product by ID
-router.put("/:id", adminAuthorization, async (req, res) => {
+
+// Edit Product by ID (SUPPLIER only, and only their own products)
+router.put("/:productID", adminAuthorization, async (req, res) => {
     try {
-        const productId = req.params.id;
+        const productID = parseInt(req.params.productID);
+        const userID = req.user.userID;
         const productData = req.body;
-        const updatedProduct = await editProductById(productId, productData);
-        res.send(updatedProduct);
+        
+        const updatedProduct = await editProductById(productID, productData, userID);
+        res.status(200).json({
+            message: "Product updated successfully",
+            data: updatedProduct
+        });
     } catch (error) {
-        res.status(400).send(error.message);
+        if (error.message.includes("not found")) {
+            return res.status(404).json({
+                message: error.message,
+                error: error
+            });
+        }
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
     }
 });
 
-// Delete Product by ID
-router.delete("/:id", adminAuthorization, async (req, res) => {
+// Delete Product by ID (SUPPLIER only, and only their own products)
+router.delete("/:productID", adminAuthorization, async (req, res) => {
     try {
-        const productId = req.params.id;
-        await deleteProductById(productId);
-        res.status(204).json({ message: "Product deleted successfully" });
+        const productID = parseInt(req.params.productID);
+        const userID = req.user.userID;
+        
+        await deleteProductById(productID, userID);
+        res.status(200).json({ 
+            message: "Product deleted successfully" 
+        });
     } catch (error) {
-        res.status(400).send(error.message);
+        if (error.message.includes("not found")) {
+            return res.status(404).json({
+                message: error.message,
+                error: error
+            });
+        }
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
     }
 });
 
