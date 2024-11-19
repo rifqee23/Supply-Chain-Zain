@@ -3,10 +3,12 @@ const app = express();
 const port = 3000;
 const dotenv = require('dotenv').config();
 const adminAuthorization = require('./middleware/adminAuthorization');
+const cors = require('cors');
 
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 
 // Root route
