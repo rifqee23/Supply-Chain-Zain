@@ -141,6 +141,46 @@ class OrderService {
             throw new Error('Only STAKEHOLDER can create orders');
         }
     }
+
+    async getOrderHistory(userID, role) {
+        return this.orderRepository.findOrderHistory(userID, role);
+    }
+
+    async updateOrderHistory(historyID, supplierUserID, updateData) {
+        // Verify supplier owns the product associated with this order
+        const isSupplierProduct = await this.orderRepository.checkSupplierProduct(
+            historyID, 
+            supplierUserID
+        );
+
+        if (!isSupplierProduct) {
+            throw new Error('Order history entry not found or unauthorized access');
+        }
+
+        // Remove sensitive fields from updateData
+        const safeUpdateData = this.sanitizeUpdateData(updateData);
+
+        return this.orderRepository.updateHistoryEntry(historyID, safeUpdateData);
+    }
+
+    async deleteOrderHistory(historyID, supplierUserID) {
+        // Verify supplier owns the product associated with this order
+        const isSupplierProduct = await this.orderRepository.checkSupplierProduct(
+            historyID, 
+            supplierUserID
+        );
+
+        if (!isSupplierProduct) {
+            throw new Error('Order history entry not found or unauthorized access');
+        }
+
+        return this.orderRepository.deleteHistoryEntry(historyID);
+    }
+
+    sanitizeUpdateData(updateData) {
+        // Untuk sementara, kita return semua data update tanpa filter
+        return updateData;
+    }
 }
 
 const StatusRole = {

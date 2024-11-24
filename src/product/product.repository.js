@@ -198,6 +198,23 @@ async function updateProductStock(productID, quantity, isIncrement = true) {
     });
 }
 
+async function findProductsByUserId(userID) {
+    const products = await prisma.products.findMany({
+        where: {
+            userID: userID
+        },
+        include: {
+            supplier: {
+                select: {
+                    username: true,
+                    email: true
+                }
+            }
+        }
+    });
+    return products;
+}
+
 module.exports = {
     insertProduct,
     findProducts,
@@ -206,5 +223,6 @@ module.exports = {
     editProduct,
     deleteProduct,
     findProductBySupplier,
-    updateProductStock
+    updateProductStock,
+    findProductsByUserId
 };
