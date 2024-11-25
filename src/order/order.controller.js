@@ -74,14 +74,15 @@ router.get("/my-orders", authorizeJWT, async (req, res) => {
     }
 });
 
-// supplier melihat history orderan pada barangnya
-router.get("/supplier/history", adminAuthorization, async (req, res) => {
+// Get history - accessible by both SUPPLIER and STAKEHOLDER
+router.get("/history", authorizeJWT, async (req, res) => {
     try {
-        const supplierUserID = req.userID;
-        const orders = await orderService.getSupplierOrderHistory(supplierUserID);
+        const userID = req.userID;
+        const role = req.role;
+        const history = await orderService.getOrderHistory(userID, role);
         res.status(200).json({
-            message: "Supplier order history retrieved successfully",
-            data: orders
+            message: "Order history retrieved successfully",
+            data: history
         });
     } catch (error) {
         res.status(500).json({
@@ -90,6 +91,67 @@ router.get("/supplier/history", adminAuthorization, async (req, res) => {
         });
     }
 });
+
+// Update history entry - SUPPLIER only
+router.put("/history/:id", adminAuthorization, async (req, res) => {
+    try {
+        const historyID = parseInt(req.params.id);
+        const supplierUserID = req.userID;
+        const updateData = req.body;
+        
+        const updatedHistory = await orderService.updateOrderHistory(
+            historyID, 
+            supplierUserID, 
+            updateData
+        );
+        
+        res.status(200).json({
+            message: "History entry updated successfully",
+            data: updatedHistory
+        });
+    } catch (error) {
+        if (error.message.includes("not found") || error.message.includes("unauthorized")) {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Delete history entry - SUPPLIER only
+router.delete("/history/:id", adminAuthorization, async (req, res) => {
+    try {
+        const historyID = parseInt(req.params.id);
+        const supplierUserID = req.userID;
+        
+        await orderService.deleteOrderHistory(historyID, supplierUserID);
+        
+        res.status(200).json({
+            message: "History entry deleted successfully"
+        });
+    } catch (error) {
+        if (error.message.includes("not found") || error.message.includes("unauthorized")) {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// supplier melihat history orderan pada barangnya
+// router.get("/supplier/history", adminAuthorization, async (req, res) => {
+//     try {
+//         const supplierUserID = req.userID;
+//         const orders = await orderService.getSupplierOrderHistory(supplierUserID);
+//         res.status(200).json({
+//             message: "Supplier order history retrieved successfully",
+//             data: orders
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             message: error.message,
+//             error: error
+//         });
+//     }
+// });
 
 
 //  hapus order oleh stakeholder
@@ -129,7 +191,7 @@ router.get("/supplier/order/:id", adminAuthorization, async (req, res) => {
 });
 
 // Modify the update status endpoint to generate QR code
-router.put("/order/status", adminAuthorization, async (req, res) => {
+router.put("/status", adminAuthorization, async (req, res) => {
     try {
         const { orderID, status } = req.body;
         const supplierUserID = req.userID;

@@ -5,7 +5,8 @@ const {
     findProductById, 
     editProduct, 
     deleteProduct,
-    findProductBySupplier
+    findProductBySupplier,
+    findProductsByUserId
 } = require("./product.repository");
 
 // Create Product
@@ -63,11 +64,21 @@ async function deleteProductById(productID, userID) {
     await deleteProduct(productID);
 }
 
+async function getProductsByUserId(userID) {
+    const products = await findProductsByUserId(userID);
+    if (!products || products.length === 0) {
+        throw Error("No products found for this user");
+    }
+    return products;
+}
+
 module.exports = {
     createProduct,
     getAllProduct,
     getSupplierProducts,
     getProductById,
     editProductById,
-    deleteProductById
+    deleteProductById,
+    findProductBySupplier,
+    getProductsByUserId
 };

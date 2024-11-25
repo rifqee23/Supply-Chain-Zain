@@ -203,6 +203,79 @@ class OrderRepository {
         });
         return order !== null;
     }
+
+    async findOrderHistory(userID, role) {
+        const query = role === 'SUPPLIER' 
+            ? {
+                product: {
+                    userID: userID
+                }
+            }
+            : { userID: userID };
+
+        return await prisma.Orders.findMany({
+            where: query,
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+    }
+
+    async updateHistoryEntry(historyID, updateData) {
+        return await prisma.Orders.update({
+            where: { 
+                orderID: historyID 
+            },
+            data: {
+                ...updateData,
+                updated_at: new Date()
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async deleteHistoryEntry(historyID) {
+        return await prisma.Orders.delete({
+            where: { 
+                orderID: historyID 
+            }
+        });
+    }
 }
 
 module.exports = OrderRepository;

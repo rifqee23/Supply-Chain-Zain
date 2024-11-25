@@ -1,5 +1,5 @@
 const express = require("express");
-const { createProduct, getAllProduct, getSupplierProducts, getProductById, editProductById, deleteProductById } = require("./product.service");
+const { createProduct, getAllProduct, getSupplierProducts, getProductById, editProductById, deleteProductById, getProductsByUserId } = require("./product.service");
 const authorizeJWT = require('../middleware/authorizeJWT');
 const adminAuthorization = require('../middleware/adminAuthorization');
 
@@ -123,6 +123,29 @@ router.delete("/:productID", adminAuthorization, async (req, res) => {
         });
     } catch (error) {
         if (error.message.includes("not found")) {
+            return res.status(404).json({
+                message: error.message,
+                error: error
+            });
+        }
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
+    }
+});
+
+router.get("/user/:userID", authorizeJWT, async (req, res) => {
+    try {
+        const userID = parseInt(req.params.userID);
+        const products = await getProductsByUserId(userID);
+        
+        res.status(200).json({
+            message: "User products retrieved successfully",
+            data: products
+        });
+    } catch (error) {
+        if (error.message.includes("No products found")) {
             return res.status(404).json({
                 message: error.message,
                 error: error
