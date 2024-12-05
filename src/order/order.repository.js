@@ -1,7 +1,7 @@
 const prisma = require('../db');
 
 class OrderRepository {
-    // Create new order
+
     async create(orderData) {
         const { userID, productID, quantity } = orderData;
         return await prisma.Orders.create({
@@ -37,7 +37,7 @@ class OrderRepository {
         return await prisma.Orders.findMany({
             where: {
                 product: {
-                    userID: userID // supplier is referenced by userID in Products table
+                    userID: userID 
                 }
             },
             include: {
@@ -51,10 +51,10 @@ class OrderRepository {
             },
             orderBy: [
                 {
-                    status: 'asc' // PENDING first
+                    status: 'asc' 
                 },
                 {
-                    created_at: 'desc' // Newest first within same status
+                    created_at: 'desc' 
                 }
             ]
         });
@@ -119,7 +119,7 @@ class OrderRepository {
     async findById(orderID) {
         return await prisma.Orders.findUnique({
             where: { 
-                orderID: orderID 
+                orderID: parseInt(orderID) 
             },
             include: {
                 user: {
@@ -275,6 +275,72 @@ class OrderRepository {
                 orderID: historyID 
             }
         });
+    }
+
+    async updateStatusWithQRCode(orderID, status, qrCodePath) {
+        return await prisma.Orders.update({
+            where: { 
+                orderID: orderID 
+            },
+            data: { 
+                status: status,
+                qr_code: qrCodePath, 
+                updated_at: new Date()
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async getOrderById(orderID, supplierUserID) {
+        const order = await prisma.Orders.findFirst({
+            where: {
+                orderID: parseInt(orderID),
+                product: {
+                    userID: supplierUserID
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        if (!order) {
+            throw new Error("Order not found or Unauthorized access");
+        }
+    
+        return order;
     }
 }
 
