@@ -88,7 +88,7 @@ class OrderService {
             await updateProductStock(currentOrder.productID, currentOrder.quantity, true);
         }
 
-        // Generate QR Code jika status ON_PROGRESS atau SUCCESS
+        // Generate QR Code 
         let qrCodePath = null;
         if (status === StatusRole.ON_PROGRESS || status === StatusRole.SUCCESS) {
             // Buat direktori jika belum ada
@@ -97,20 +97,18 @@ class OrderService {
                 fs.mkdirSync(qrCodeDir, { recursive: true });
             }
 
-            // Generate nama file unik
+            // Generate nama 
             const qrCodeFileName = `order_${orderID}_qr.png`;
             const qrCodeFilePath = path.join(qrCodeDir, qrCodeFileName);
             const orderDetailsUrl = `${process.env.BASE_URL}/api/orders/supplier/order/${orderID}`;
 
-            // Simpan QR code sebagai file
             await QRCode.toFile(qrCodeFilePath, orderDetailsUrl, {
                 color: {
-                    dark: '#000',  // Warna QR code
-                    light: '#FFF'  // Warna background
+                    dark: '#000',  
+                    light: '#FFF'  
                 }
             });
 
-            // Simpan path relatif
             qrCodePath = `/qr-codes/${qrCodeFileName}`;
         }
 
@@ -180,9 +178,7 @@ class OrderService {
             throw new Error('Order history entry not found or unauthorized access');
         }
 
-        // Remove sensitive fields from updateData
         const safeUpdateData = this.sanitizeUpdateData(updateData);
-
         return this.orderRepository.updateHistoryEntry(historyID, safeUpdateData);
     }
 
@@ -201,7 +197,6 @@ class OrderService {
     }
 
     sanitizeUpdateData(updateData) {
-        // Untuk sementara, kita return semua data update tanpa filter
         return updateData;
     }
 }

@@ -1,7 +1,7 @@
 const prisma = require('../db');
 
 class OrderRepository {
-    // Create new order
+
     async create(orderData) {
         const { userID, productID, quantity } = orderData;
         return await prisma.Orders.create({
@@ -37,7 +37,7 @@ class OrderRepository {
         return await prisma.Orders.findMany({
             where: {
                 product: {
-                    userID: userID // supplier is referenced by userID in Products table
+                    userID: userID 
                 }
             },
             include: {
@@ -51,10 +51,10 @@ class OrderRepository {
             },
             orderBy: [
                 {
-                    status: 'asc' // PENDING first
+                    status: 'asc' 
                 },
                 {
-                    created_at: 'desc' // Newest first within same status
+                    created_at: 'desc' 
                 }
             ]
         });
@@ -119,7 +119,7 @@ class OrderRepository {
     async findById(orderID) {
         return await prisma.Orders.findUnique({
             where: { 
-                orderID: parseInt(orderID) // Konversi string ke integer
+                orderID: parseInt(orderID) 
             },
             include: {
                 user: {
@@ -284,7 +284,7 @@ class OrderRepository {
             },
             data: { 
                 status: status,
-                qr_code: qrCodePath, // Simpan path QR code
+                qr_code: qrCodePath, 
                 updated_at: new Date()
             },
             include: {
