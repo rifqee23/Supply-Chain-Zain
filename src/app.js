@@ -4,12 +4,13 @@ const port = 3000;
 const dotenv = require('dotenv').config();
 const adminAuthorization = require('./middleware/adminAuthorization');
 const cors = require('cors');
-
+const path = require('path');
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
+app.use('/qr-codes', express.static(path.join(__dirname, 'public/qr-codes')));
 
 // Root route
 app.get('/', (req, res) => {

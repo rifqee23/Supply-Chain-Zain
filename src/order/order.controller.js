@@ -5,6 +5,8 @@ const orderService = new OrderService();
 const authorizeJWT = require('../middleware/authorizeJWT');
 const adminAuthorization = require('../middleware/adminAuthorization');
 const QRCode = require('qrcode');
+const path = require('path');
+const fs = require('fs');
 
 // Create Order (STAKEHOLDER only)
 router.post("/", authorizeJWT, async (req, res) => {
@@ -196,20 +198,13 @@ router.put("/status", adminAuthorization, async (req, res) => {
         const { orderID, status } = req.body;
         const supplierUserID = req.userID;
 
-        // Update order status
+        // Update status order
         const updatedOrder = await orderService.updateOrderStatus(orderID, status, supplierUserID);
-
-        // Generate QR code if status is updated to ON_PROGRESS or SUCCESS
-        let qrCodeData = null;
-        if (status === 'ON_PROGRESS' || status === 'SUCCESS') {
-            const orderDetailsUrl = `${process.env.BASE_URL}/api/orders/supplier/order/${orderID}`;
-            qrCodeData = await QRCode.toDataURL(orderDetailsUrl);
-        }
 
         res.status(200).json({
             message: "Order status updated successfully",
             data: updatedOrder,
-            qrCode: qrCodeData
+            qrCodePath: updatedOrder.qr_code // Path QR code
         });
     } catch (error) {
         if (error.message.includes("not found")) {
@@ -218,6 +213,45 @@ router.put("/status", adminAuthorization, async (req, res) => {
                 error: error
             });
         }
+        res.status(400).json({
+            message: error.message,
+            error: error
+        });
+    }
+});
+
+router.get("/qr-code/:orderID", adminAuthorization, async (req, res) => {
+    try {
+        const orderID = parseInt(req.params.orderID);
+        const supplierUserID = req.userID;
+
+        // Validate order and access
+        const order = await orderService.getOrderById(orderID, supplierUserID);
+
+        if (!order.qr_code) {
+            return res.status(404).json({ message: "QR Code not found" });
+        }
+
+        // Construct absolute path to QR code file
+        const qrCodePath = path.join(__dirname, '../public', order.qr_code);
+
+        // Verify file exists before attempting to download
+        if (!fs.existsSync(qrCodePath)) {
+            return res.status(404).json({ message: "QR Code file not found" });
+        }
+
+        // Stream file with meaningful filename
+        res.download(qrCodePath, `order_${orderID}_qr.png`, (err) => {
+            if (err) {
+                console.error("QR Code download error:", err);
+                res.status(500).json({ 
+                    message: "Error downloading QR code", 
+                    error: err 
+                });
+            }
+        });
+    } catch (error) {
+        console.error("QR Code retrieval error:", error);
         res.status(400).json({
             message: error.message,
             error: error

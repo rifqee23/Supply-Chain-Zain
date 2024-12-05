@@ -119,7 +119,7 @@ class OrderRepository {
     async findById(orderID) {
         return await prisma.Orders.findUnique({
             where: { 
-                orderID: orderID 
+                orderID: parseInt(orderID) // Konversi string ke integer
             },
             include: {
                 user: {
@@ -275,6 +275,72 @@ class OrderRepository {
                 orderID: historyID 
             }
         });
+    }
+
+    async updateStatusWithQRCode(orderID, status, qrCodePath) {
+        return await prisma.Orders.update({
+            where: { 
+                orderID: orderID 
+            },
+            data: { 
+                status: status,
+                qr_code: qrCodePath, // Simpan path QR code
+                updated_at: new Date()
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async getOrderById(orderID, supplierUserID) {
+        const order = await prisma.Orders.findFirst({
+            where: {
+                orderID: parseInt(orderID),
+                product: {
+                    userID: supplierUserID
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        username: true,
+                        email: true
+                    }
+                },
+                product: {
+                    include: {
+                        supplier: {
+                            select: {
+                                username: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        if (!order) {
+            throw new Error("Order not found or Unauthorized access");
+        }
+    
+        return order;
     }
 }
 

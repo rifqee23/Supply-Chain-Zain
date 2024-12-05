@@ -1,6 +1,9 @@
 const OrderRepository = require('./order.repository');
 const prisma = require('../db');
 const { updateProductStock } = require('../product/product.repository');
+const path = require('path');
+const QRCode = require('qrcode');
+const fs = require('fs');
 
 class OrderService {
     constructor() {
@@ -21,13 +24,9 @@ class OrderService {
         return this.orderRepository.findSupplierOrders(userID);
     }
 
-    async getOrderById(orderID, userID) {
-        // Periksa apakah order ada dan dimiliki oleh user tersebut
-        const order = await this.orderRepository.findById(orderID);
-        if (!order || order.userID !== userID) {
-            throw new Error('Order not found or Unauthorized access');
-        }
-        return order;
+    async getOrderById(orderID, supplierUserID) {
+        // Use the repository method to find the order
+        return this.orderRepository.getOrderById(orderID, supplierUserID);
     }
 
     async getSupplierOrderDetails(orderID, supplierUserID) {
@@ -65,34 +64,58 @@ class OrderService {
 
     // Update order status
     async updateOrderStatus(orderID, status, supplierUserID) {
-        // Check if order exists and belongs to supplier's products
+        // Validasi existing code...
         const isSupplierProduct = await this.orderRepository.checkSupplierProduct(orderID, supplierUserID);
 
         if (!isSupplierProduct) {
             throw new Error('Order not found or unauthorized access');
         }
 
-        // Validate status
+        // Validasi status
         if (!Object.values(StatusRole).includes(status)) {
             throw new Error('Invalid status');
         }
 
-        // Get current order
         const currentOrder = await this.orderRepository.findById(orderID);
         if (!currentOrder) {
             throw new Error('Order not found');
         }
 
-        // Handle stock management based on status change
+        // Manajemen stok
         if (status === StatusRole.ON_PROGRESS && currentOrder.status === StatusRole.PENDING) {
-            // Kurangi stok jika status berubah dari PENDING ke ON_PROGRESS
             await updateProductStock(currentOrder.productID, currentOrder.quantity, false);
         } else if (status === StatusRole.REJECT && currentOrder.status === StatusRole.ON_PROGRESS) {
-            // Jika status berubah menjadi REJECT dari ON_PROGRESS, kembalikan stok
             await updateProductStock(currentOrder.productID, currentOrder.quantity, true);
         }
 
-        return this.orderRepository.updateStatus(orderID, status);
+        // Generate QR Code jika status ON_PROGRESS atau SUCCESS
+        let qrCodePath = null;
+        if (status === StatusRole.ON_PROGRESS || status === StatusRole.SUCCESS) {
+            // Buat direktori jika belum ada
+            const qrCodeDir = path.join(__dirname, '../public/qr-codes');
+            if (!fs.existsSync(qrCodeDir)) {
+                fs.mkdirSync(qrCodeDir, { recursive: true });
+            }
+
+            // Generate nama file unik
+            const qrCodeFileName = `order_${orderID}_qr.png`;
+            const qrCodeFilePath = path.join(qrCodeDir, qrCodeFileName);
+            const orderDetailsUrl = `${process.env.BASE_URL}/api/orders/supplier/order/${orderID}`;
+
+            // Simpan QR code sebagai file
+            await QRCode.toFile(qrCodeFilePath, orderDetailsUrl, {
+                color: {
+                    dark: '#000',  // Warna QR code
+                    light: '#FFF'  // Warna background
+                }
+            });
+
+            // Simpan path relatif
+            qrCodePath = `/qr-codes/${qrCodeFileName}`;
+        }
+
+        // Update status dengan path QR code
+        return this.orderRepository.updateStatusWithQRCode(orderID, status, qrCodePath);
     }
 
     // Delete order
