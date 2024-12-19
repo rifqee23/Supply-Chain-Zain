@@ -4,6 +4,7 @@ const { updateProductStock } = require("../product/product.repository");
 const path = require("path");
 const QRCode = require("qrcode");
 const fs = require("fs");
+const axios = require("axios");
 
 class OrderService {
   constructor() {
@@ -111,25 +112,31 @@ class OrderService {
     // Generate QR Code
     let qrCodePath = null;
     if (status === StatusRole.ON_PROGRESS || status === StatusRole.SUCCESS) {
-      // Buat direktori jika belum ada
-      const qrCodeDir = path.join(__dirname, "../public/qr-codes");
-      if (!fs.existsSync(qrCodeDir)) {
-        fs.mkdirSync(qrCodeDir, { recursive: true });
-      }
-
-      // Generate nama
-      const qrCodeFileName = `order_${orderID}_qr.png`;
-      const qrCodeFilePath = path.join(qrCodeDir, qrCodeFileName);
       const orderDetailsUrl = `${process.env.BASE_URL}/${orderID}`;
 
-      await QRCode.toFile(qrCodeFilePath, orderDetailsUrl, {
+      // Generate QR Code as a buffer
+      const qrCodeBuffer = await QRCode.toBuffer(orderDetailsUrl, {
         color: {
           dark: "#000",
           light: "#FFF",
         },
       });
 
-      qrCodePath = `/qr-codes/${qrCodeFileName}`;
+      // Upload to Imgur
+      const response = await axios.post(
+        "https://api.imgur.com/3/image",
+        {
+          image: qrCodeBuffer.toString("base64"),
+          type: "base64",
+        },
+        {
+          headers: {
+            Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
+          },
+        }
+      );
+
+      qrCodePath = response.data.data.link; // URL dari gambar yang diupload
     }
 
     // Update status dengan path QR code

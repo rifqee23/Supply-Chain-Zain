@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-// const port = 3000;
+const port = 3000;
 const dotenv = require("dotenv");
 dotenv.config();
 const adminAuthorization = require("./middleware/adminAuthorization");
@@ -31,8 +31,8 @@ app.use("/api/users", adminAuthorization, userController);
 app.use("/api/orders", orderController);
 
 // Start the server
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
 
 module.exports = app;
