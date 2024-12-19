@@ -1,16 +1,17 @@
 const express = require("express");
 const app = express();
-const port = 3000;
-const dotenv = require('dotenv').config();
-const adminAuthorization = require('./middleware/adminAuthorization');
-const cors = require('cors');
-const path = require('path');
+// const port = 3000;
+const dotenv = require("dotenv");
+dotenv.config();
+const adminAuthorization = require("./middleware/adminAuthorization");
+const cors = require("cors");
+const path = require("path");
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
-app.use('/qr-codes', express.static(path.join(__dirname, 'public/qr-codes')));
+app.use("/qr-codes", express.static(path.join(__dirname, "public/qr-codes")));
 
 // Root route
 app.get("/", (req, res) => {
@@ -34,4 +35,4 @@ app.use("/api/orders", orderController);
 //   console.log(`Example app listening on port ${port}`);
 // });
 
-export default app;
+module.exports = app;

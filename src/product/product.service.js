@@ -1,84 +1,97 @@
-const { 
-    insertProduct, 
-    findProducts, 
-    findSupplierProducts,
-    findProductById, 
-    editProduct, 
-    deleteProduct,
-    findProductBySupplier,
-    findProductsByUserId
+const {
+  insertProduct,
+  findProducts,
+  findSupplierProducts,
+  findProductById,
+  editProduct,
+  deleteProduct,
+  findProductBySupplier,
+  findProductsByUserId,
 } = require("./product.repository");
 
 // Create Product
 async function createProduct(productData) {
-    if (!productData.userID) {
-        throw new Error("User ID is required");
-    }
-    const newProduct = await insertProduct(productData);
-    return newProduct;
+  if (!productData.userID) {
+    throw new Error("User ID is required");
+  }
+  const newProduct = await insertProduct(productData);
+  return newProduct;
 }
 
 // Get all Products
-async function getAllProduct() {
-    const products = await findProducts();
-    return products;
+async function getAllProduct(userId) {
+  console.log("Received userId:", userId); // Debug log
+
+  const products = await findProducts();
+  if (userId) {
+    const filteredProducts = products.filter(
+      (product) => (isOwnedByUser = product.userID === parseInt(userId))
+    );
+    console.log("Filtered products:", filteredProducts); // Debug log
+    return filteredProducts;
+  }
+  return products;
 }
 
 // Get Supplier's Products
 async function getSupplierProducts(userID) {
-    const products = await findSupplierProducts(userID);
-    return products;
+  const products = await findSupplierProducts(userID);
+  return products;
 }
 
 // Get Product By ID
 async function getProductById(productID) {
-    const product = await findProductById(productID);
-    if(!product) {
-        throw Error("Product not found");
-    }
-    return product;
+  const product = await findProductById(productID);
+  if (!product) {
+    throw Error("Product not found");
+  }
+  return product;
 }
 
 // Edit Product
 async function editProductById(productID, productData, userID) {
-    // Verifikasi kepemilikan produk
-    const product = await findProductBySupplier(productID, userID);
-    if (!product) {
-        throw Error("Product not found or you don't have permission to edit this product");
-    }
+  // Verifikasi kepemilikan produk
+  const product = await findProductBySupplier(productID, userID);
+  if (!product) {
+    throw Error(
+      "Product not found or you don't have permission to edit this product"
+    );
+  }
 
-    // Update produk
-    const updatedProduct = await editProduct(productID, productData);
-    return updatedProduct;
+  // Update produk
+  const updatedProduct = await editProduct(productID, productData);
+  return updatedProduct;
 }
 
 // Delete Product
 async function deleteProductById(productID, userID) {
-    // Verifikasi kepemilikan produk
-    const product = await findProductBySupplier(productID, userID);
-    if (!product) {
-        throw Error("Product not found or you don't have permission to delete this product");
-    }
+  // Verifikasi kepemilikan produk
+  const product = await findProductBySupplier(productID, userID);
+  if (!product) {
+    throw Error(
+      "Product not found or you don't have permission to delete this product"
+    );
+  }
 
-    // Hapus produk
-    await deleteProduct(productID);
+  // Hapus produk
+  await deleteProduct(productID);
 }
 
 async function getProductsByUserId(userID) {
-    const products = await findProductsByUserId(userID);
-    if (!products || products.length === 0) {
-        throw Error("No products found for this user");
-    }
-    return products;
+  const products = await findProductsByUserId(userID);
+  if (!products || products.length === 0) {
+    throw Error("No products found for this user");
+  }
+  return products;
 }
 
 module.exports = {
-    createProduct,
-    getAllProduct,
-    getSupplierProducts,
-    getProductById,
-    editProductById,
-    deleteProductById,
-    findProductBySupplier,
-    getProductsByUserId
+  createProduct,
+  getAllProduct,
+  getSupplierProducts,
+  getProductById,
+  editProductById,
+  deleteProductById,
+  findProductBySupplier,
+  getProductsByUserId,
 };
