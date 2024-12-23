@@ -31,7 +31,7 @@ model Products {
   userID      Int              
   created_at  DateTime         @default(now())
   updated_at  DateTime         @updatedAt
-  supplier    Users            @relation(fields: [userID], references: [userID])
+  supplier    Users            @relation(fields: [userID], references: [userID], onDelete: Cascade)
   Orders      Orders[]         
 
   @@index([userID])
@@ -45,8 +45,8 @@ model Orders {
   status     StatusRole @default(PENDING)
   created_at DateTime   @default(now())
   updated_at DateTime   @updatedAt
-  user       Users      @relation(fields: [userID], references: [userID])
-  product    Products   @relation(fields: [productID], references: [productID])
+  user       Users      @relation(fields: [userID], references: [userID], onDelete: Cascade)
+  product    Products   @relation(fields: [productID], references: [productID], onDelete: Cascade)
   qr_code    String?    
 
   @@index([userID])
